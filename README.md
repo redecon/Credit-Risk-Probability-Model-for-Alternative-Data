@@ -1,56 +1,57 @@
-# Credit Risk Probability Model for Alternative Data
+## Credit Scoring Business Understanding
 
-### Basel II, risk measurement, and the need for interpretable models
+Bati Bank is developing a Credit Scoring Model to support its Buy-Now-Pay-Later (BNPL) partnership with a major eCommerce platform. Because BNPL loans are short-term, high-volume, and often issued to customers with limited credit histories, the bank requires a transparent, compliant, and data-driven approach to assessing credit risk.
 
+### Basel II and the Need for Interpretable, Well‑Documented Models
+Under the Basel II Capital Accord, financial institutions must demonstrate that their credit risk models are:
+- **Interpretable**  
+- **Well‑documented**  
+- **Auditable**  
+- **Grounded in sound risk measurement principles**
 
-Under the Basel II Capital Accord, banks are required to quantify credit risk using sound, transparent, and consistently applied methodologies, and to hold capital commensurate with the underlying risk of their credit exposures. This pushes institutions toward models whose assumptions, inputs, and outputs can be clearly explained to internal risk committees, external auditors, and regulators, rather than purely “black-box” systems optimized only for accuracy. Basel II also emphasizes governance, validation, and backtesting: the bank must demonstrate how the model was developed, which risk drivers it uses, how performance is monitored, and how model limitations are addressed. For this project, that means our credit risk model must be interpretable, traceable, and well-documented end to end—from feature engineering and proxy default definition to model training, threshold selection, and deployment decisions.
+This regulatory environment strongly favors models whose decision logic can be explained to auditors, regulators, and internal risk committees. As a result, interpretable models such as **Logistic Regression with Weight of Evidence (WoE)** are often preferred as baseline or production models in regulated financial contexts.
 
-Why a proxy default variable is necessary and its business risks In a typical credit scoring setup, models are trained on historical data where each loan carries an explicit “default” outcome (e.g., 90+ days past due, written off, or restructured). In this challenge, we do not have a direct default label; instead, we only see alternative behavioral data (eCommerce transactions, RFM patterns, fraud flags). To learn from this data, we must define a proxy target that approximates credit risk—for example, labeling customers as “high risk” or “low risk” based on their recency, frequency, monetary patterns, or other behavioral indicators. This step is necessary to translate raw behavior into a supervised learning problem, but it introduces model risk: if the proxy is poorly aligned with true default behavior, the model may systematically mis-rank customers.
+### Why a Proxy Variable Is Necessary
+The dataset provided by the eCommerce partner does not include direct repayment outcomes (e.g., late payment, default, delinquency). Without a target variable, supervised learning is not possible.
 
-The main business risks of using a proxy are:
+To address this, we construct a **proxy risk label** using behavioral patterns derived from RFM (Recency, Frequency, Monetary Value) metrics. This approach allows the bank to:
+- Segment customers based on purchasing behavior  
+- Identify high‑risk behavioral clusters  
+- Train supervised models even in the absence of historical default data  
 
-Misclassification risk: Customers may be labeled “bad” based on behavior that is only weakly related to actual repayment capacity, leading to high rejection rates for creditworthy customers (lost revenue) or approval of truly risky ones (higher default and loss rates).
+However, using a proxy introduces **model risk**, including:
+- Potential misclassification of customers  
+- Over‑ or under‑estimation of risk  
+- Regulatory scrutiny if the proxy is not well‑justified  
 
-Bias and fairness risk: If the proxy variable reflects historical operational or behavioral patterns that correlate with demographic groups, the model may inadvertently encode unfair discrimination or unequal access to credit.
+Therefore, the proxy creation process must be transparent, documented, and validated.
 
-Model drift and instability: As customer behavior, platform usage, and economic conditions evolve, the mapping from behavior to true default risk may change. A static proxy definition can become stale, degrading model performance.
+### Trade-offs Between Interpretable and Complex Models
+Two broad categories of models are considered:
 
-Regulatory and reputational risk: If regulators or customers challenge decisions, the bank must justify both the proxy definition and any downstream model. Weak justification or opaque logic can harm trust and may be viewed as non-compliant with sound risk management expectations.
+#### 1. Interpretable Models (e.g., Logistic Regression with WoE)
+**Advantages**
+- High interpretability  
+- Easy to document and justify to regulators  
+- Stable and predictable behavior  
+- Works well with WoE/IV feature engineering  
 
-Because of these risks, the proxy definition must be carefully reasoned, validated, documented, and regularly reviewed, with explicit acknowledgement of its limitations.
+**Limitations**
+- May underfit complex, nonlinear relationships  
+- Lower predictive power compared to advanced models  
 
-Trade-offs: simple interpretable models vs complex high-performance models In a regulated financial context, there is a fundamental trade-off between model interpretability and predictive power:
+#### 2. Complex Models (e.g., Gradient Boosting Machines)
+**Advantages**
+- High predictive accuracy  
+- Captures nonlinear interactions  
+- Often outperforms simpler models  
 
-Simple, interpretable models (e.g., Logistic Regression with WoE):
+**Limitations**
+- Harder to interpret  
+- Requires explainability tools (e.g., SHAP)  
+- More challenging to justify in regulated environments  
 
-Pros:
-
-Transparency: Weight-of-Evidence (WoE) transformations and logistic regression coefficients provide clear, monotonic relationships between predictors and default odds, making it easier for risk managers, auditors, and regulators to understand and challenge the model.
-
-Governance and documentation: These models align well with traditional scorecard practices, enabling straightforward documentation, reason codes for adverse actions, and policy overlays.
-
-Stability and robustness: WoE binning and regularization can yield stable models that are less sensitive to noise and easier to monitor over time.
-
-Cons:
-
-Limited flexibility: They may underfit complex, nonlinear relationships and interactions present in alternative behavioral data, potentially leaving predictive power on the table.
-
-Feature engineering burden: Achieving good performance may require extensive manual binning, transformation, and interaction design.
-
-Complex, high-performance models (e.g., Gradient Boosting, XGBoost, LightGBM):
-
-Pros:
-
-Higher predictive accuracy: Tree-based ensembles capture nonlinearities and interactions automatically, often producing better risk rank-ordering and more granular probability estimates, especially on rich behavioral datasets.
-
-Feature discovery: They can uncover patterns that traditional scorecards might miss, which is particularly valuable when working with alternative data sources like eCommerce transactions.
-
-Cons:
-
-Opacity and explainability challenges: Even with tools like SHAP or feature importance plots, explaining individual decisions and global model behavior is more complex, which can be problematic for regulatory reviews and customer-facing explanations.
-
-Governance complexity: Model validation, challenger models, and monitoring frameworks must be more sophisticated, and regulators may expect stronger justification for using complex approaches.
-
-Overfitting and operational risk: Without careful tuning, cross-validation, and continuous monitoring, these models can overfit historical patterns and degrade in new conditions, increasing model risk.
-
-For this project, the optimal strategy is often hybrid: use interpretable, scorecard-style models as a baseline and governance-friendly option, while exploring gradient boosting as a performance benchmark or decision-support tool. Any complex model considered for production must be supported by robust documentation, explainability analysis, and clear evidence that its incremental performance gain justifies the added governance and operational burden.
+In a Basel II context, the recommended approach is:
+- Use **Logistic Regression + WoE** as the primary, regulator‑friendly model  
+- Benchmark against **Gradient Boosting** to evaluate performance gains  
+- Use SHAP values to bridge interpretability gaps if complex models are considered  
