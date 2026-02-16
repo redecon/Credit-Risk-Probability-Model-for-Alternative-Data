@@ -8,3 +8,6 @@ fastapi
 uvicorn
 mlflow
 python-dotenv
+pytest
+flake8
+mlflow
