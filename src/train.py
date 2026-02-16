@@ -11,40 +11,51 @@ from src.config import TrainingConfig
 
 def train_model(data_path: str):
     config = TrainingConfig()
+    print(" Loading dataset from:", data_path)
     df = pd.read_csv(data_path)
 
     y = df["is_high_risk"]
     X = df.drop("is_high_risk", axis=1)
 
+    print("⚙️ Building preprocessor and transforming features...")
     preprocessor = build_preprocessor()
     X_processed = preprocessor.fit_transform(X)
 
+    print("✂️ Splitting dataset into train/test...")
     X_train, X_test, y_train, y_test = train_test_split(
         X_processed, y, test_size=config.test_size, random_state=config.random_state
     )
 
     model = LogisticRegression(random_state=config.random_state)
 
-    # MLflow experiment logging
+    print("🚀 Starting MLflow run...")
     with mlflow.start_run():
+        print("🤖 Training Logistic Regression model...")
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
         # ✅ Log metrics
-        mlflow.log_metric("precision", precision_score(y_test, y_pred, zero_division=0))
-        mlflow.log_metric("recall", recall_score(y_test, y_pred, zero_division=0))
-        mlflow.log_metric("f1_score", f1_score(y_test, y_pred, zero_division=0))
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+
+        mlflow.log_metric("precision", precision)
+        mlflow.log_metric("recall", recall)
+        mlflow.log_metric("f1_score", f1)
+        print(f"📊 Metrics logged: Precision={precision}, Recall={recall}, F1={f1}")
 
         # ✅ Log parameters
         mlflow.log_param("test_size", config.test_size)
         mlflow.log_param("random_state", config.random_state)
         mlflow.log_param("model_type", "LogisticRegression")
+        print("⚙️ Parameters logged.")
 
         # ✅ Save and log artifacts
         joblib.dump(model, "data/processed/model.pkl")
         joblib.dump(preprocessor, "data/processed/preprocessor.pkl")
         mlflow.log_artifact("data/processed/model.pkl", artifact_path="models")
         mlflow.log_artifact("data/processed/preprocessor.pkl", artifact_path="preprocessor")
+        print("📦 Artifacts saved and logged.")
 
         # ✅ Register model in MLflow Model Registry
         mlflow.sklearn.log_model(
@@ -52,15 +63,19 @@ def train_model(data_path: str):
             "model",
             registered_model_name="CreditRiskModel"
         )
+        print("✅ Model registration attempted — check MLflow UI for CreditRiskModel.")
 
         # ✅ Log evaluation comparison table
         eval_df = evaluation_table(y_test, y_pred)
         eval_df.to_csv("data/processed/evaluation.csv", index=False)
         mlflow.log_artifact("data/processed/evaluation.csv", artifact_path="evaluation")
+        print("📑 Evaluation table logged.")
 
         # ✅ Log governance document
-        mlflow.log_artifact("docs/model_selection.md", artifact_path="governance")
+        mlflow.log_artifact("docs/models.md", artifact_path="governance")
+        print("📜 Governance document logged.")
 
+        print("🎉 Training run completed successfully.")
         return model
 
 
@@ -74,7 +89,12 @@ def evaluation_table(y_true, y_pred):
 
 
 # ✅ Point MLflow to the local tracking server
-mlflow.set_tracking_uri("http://localhost:5000")
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
 
 # ✅ Set experiment name
 mlflow.set_experiment("CreditRiskExperiment")
+
+
+if __name__ == "__main__":
+    model = train_model("data/processed/transactions_with_target.csv")
+    print("🎉 Training script finished, model trained and registered.")
