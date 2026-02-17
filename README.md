@@ -1,57 +1,122 @@
-## Credit Scoring Business Understanding
+# Credit Risk Probability Model using Alternative Data
 
-Bati Bank is developing a Credit Scoring Model to support its Buy-Now-Pay-Later (BNPL) partnership with a major eCommerce platform. Because BNPL loans are short-term, high-volume, and often issued to customers with limited credit histories, the bank requires a transparent, compliant, and data-driven approach to assessing credit risk.
+## Overview
+This project builds a **machine learning pipeline** to predict credit risk using **alternative transaction data**.  
+It demonstrates end‑to‑end ML engineering: preprocessing, training, explainability (SHAP), governance, monitoring, and deployment.  
+The goal is to showcase a **portfolio‑grade capstone** that blends technical depth with business framing — ready for recruiters and stakeholders.
 
-### Basel II and the Need for Interpretable, Well‑Documented Models
-Under the Basel II Capital Accord, financial institutions must demonstrate that their credit risk models are:
-- **Interpretable**  
-- **Well‑documented**  
-- **Auditable**  
-- **Grounded in sound risk measurement principles**
+---
 
-This regulatory environment strongly favors models whose decision logic can be explained to auditors, regulators, and internal risk committees. As a result, interpretable models such as **Logistic Regression with Weight of Evidence (WoE)** are often preferred as baseline or production models in regulated financial contexts.
+## Architecture
+![Architecture](docs/architecture.png)
 
-### Why a Proxy Variable Is Necessary
-The dataset provided by the eCommerce partner does not include direct repayment outcomes (e.g., late payment, default, delinquency). Without a target variable, supervised learning is not possible.
+**Pipeline Flow:**
+1. **Data ingestion** → `transactions_with_target.csv`
+2. **Preprocessing** → categorical + numerical transformations
+3. **Model training** → Logistic Regression
+4. **Experiment tracking** → MLflow (metrics, parameters, artifacts)
+5. **Model registry** → versioning with aliases (Production, Staging)
+6. **Explainability** → SHAP global + local plots
+7. **Governance** → proxy limitations + monitoring plan
 
-To address this, we construct a **proxy risk label** using behavioral patterns derived from RFM (Recency, Frequency, Monetary Value) metrics. This approach allows the bank to:
-- Segment customers based on purchasing behavior  
-- Identify high‑risk behavioral clusters  
-- Train supervised models even in the absence of historical default data  
+---
 
-However, using a proxy introduces **model risk**, including:
-- Potential misclassification of customers  
-- Over‑ or under‑estimation of risk  
-- Regulatory scrutiny if the proxy is not well‑justified  
+## Setup Instructions
+Clone the repo and install dependencies:
 
-Therefore, the proxy creation process must be transparent, documented, and validated.
+```bash
+git clone https://github.com/redecon/Credit-Risk-Probability-Model-for-Alternative-Data.git
+cd Credit-Risk-Probability-Model-for-Alternative-Data
+pip install -r requirements.txt
+```
 
-### Trade-offs Between Interpretable and Complex Models
-Two broad categories of models are considered:
+---
 
-#### 1. Interpretable Models (e.g., Logistic Regression with WoE)
-**Advantages**
-- High interpretability  
-- Easy to document and justify to regulators  
-- Stable and predictable behavior  
-- Works well with WoE/IV feature engineering  
+**Run with Docker:**
 
-**Limitations**
-- May underfit complex, nonlinear relationships  
-- Lower predictive power compared to advanced models  
+```bash
+docker compose up
+```
 
-#### 2. Complex Models (e.g., Gradient Boosting Machines)
-**Advantages**
-- High predictive accuracy  
-- Captures nonlinear interactions  
-- Often outperforms simpler models  
+**Train the model:**
 
-**Limitations**
-- Harder to interpret  
-- Requires explainability tools (e.g., SHAP)  
-- More challenging to justify in regulated environments  
+```bash
+python -m src.train
+```
 
-In a Basel II context, the recommended approach is:
-- Use **Logistic Regression + WoE** as the primary, regulator‑friendly model  
-- Benchmark against **Gradient Boosting** to evaluate performance gains  
-- Use SHAP values to bridge interpretability gaps if complex models are considered  
+## Usage
+**Train & Log Model**
+```bash
+python -m src.train
+```
+**Outputs:**
+
+- Metrics (Precision, Recall, F1)
+
+- Parameters
+
+- Artifacts (preprocessor, evaluation table, governance doc)
+
+- SHAP explainability plots
+
+---
+
+## API Example
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"Amount": 5000, "ChannelId": 2, "ProductCategory": "airtime"}'
+```
+**Response:**
+
+```json
+{
+  "risk_score": 0.82,
+  "is_high_risk": true,
+  "explanation": {
+    "Amount": "↑ increased risk",
+    "ChannelId": "↑ increased risk",
+    "ProductCategory": "↑ increased risk"
+  }
+}
+```
+## Outputs
+**MLflow UI →** metrics, parameters, artifacts
+
+**SHAP Global Importance →** top drivers: Amount, ChannelId, ProductCategory
+
+**Single Prediction Explanation →** transparency for individual customers
+
+**Governance Docs →** rationale + proxy limitations
+
+**Monitoring Plan →** drift detection, fairness audits, alerting
+Screenshots available in docs/screenshots/
+
+---
+
+## Governance & Monitoring
+- **Model Registry →** MLflow with aliases (Production, Staging, Archived)
+
+- **Feature Importance Rationale →** documented in docs/models.md
+
+- **Monitoring Plan →** documented in docs/monitoring.md
+
+       - Track prediction drift
+
+       - Audit fairness via SHAP subgroup analysis
+
+       - Alert if feature importance shifts significantly
+
+  ---
+
+#### This project demonstrates:
+
+- **ML Engineering →** reproducible pipelines, Docker, CI/CD
+
+- **Explainability →** SHAP integration, stakeholder‑ready narratives
+
+- **Governance →** proxy limitations, monitoring, registry practices
+
+- **Communication →** professional documentation, Medium‑style report
+
+It is a capstone project to showcase readiness for roles in Data Science, ML Engineering, and Technical Change Management.
