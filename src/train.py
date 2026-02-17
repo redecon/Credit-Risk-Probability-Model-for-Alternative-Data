@@ -2,6 +2,8 @@ import pandas as pd
 import joblib
 import mlflow
 import mlflow.sklearn
+import shap
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -11,7 +13,7 @@ from src.config import TrainingConfig
 
 def train_model(data_path: str):
     config = TrainingConfig()
-    print(" Loading dataset from:", data_path)
+    print("📂 Loading dataset from:", data_path)
     df = pd.read_csv(data_path)
 
     y = df["is_high_risk"]
@@ -74,6 +76,36 @@ def train_model(data_path: str):
         # ✅ Log governance document
         mlflow.log_artifact("docs/models.md", artifact_path="governance")
         print("📜 Governance document logged.")
+
+        # ✅ SHAP Explainability
+        print("🔍 Generating SHAP explainability plots...")
+        explainer = shap.Explainer(model, X_train)
+
+        # Get feature names from preprocessor
+        feature_names = preprocessor.get_feature_names_out()
+
+        # Global feature importance
+        shap_values = explainer(X_train)
+        shap.summary_plot(shap_values, X_train, feature_names=feature_names, plot_type="bar", show=False)
+        plt.savefig("data/processed/shap_global_importance.png")
+        mlflow.log_artifact("data/processed/shap_global_importance.png", artifact_path="explainability")
+        plt.close()
+        print("📊 SHAP global importance logged.")
+
+        # Single prediction explanation (first test sample)
+        shap.force_plot(
+            explainer.expected_value,
+            shap_values[0].values,
+            X_train[0].toarray()[0] if hasattr(X_train[0], "toarray") else X_train[0],
+            matplotlib=True,
+            show=False
+        )
+        plt.savefig("data/processed/shap_single_prediction.png")
+        mlflow.log_artifact("data/processed/shap_single_prediction.png", artifact_path="explainability")
+        plt.close()
+        print("📈 SHAP single prediction explanation logged.")
+
+
 
         print("🎉 Training run completed successfully.")
         return model
